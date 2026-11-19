@@ -182,7 +182,7 @@ function peticionVoz(nombre: keyof typeof PROVEEDORES, valor: string): { url: st
 
 async function claveVoz(nombre: NombreClave, valor: string): Promise<Respuesta> {
   const detectado = nombreClaveVoz(valor);
-  if (!detectado) return errorApi(400, "No reconozco esa clave: tiene que ser de Google (empieza por AIza), de Groq (gsk_) o de OpenAI (sk-)", { campo: "valor" });
+  if (!detectado) return errorApi(400, "No reconozco esa clave: tiene que ser de Google (empieza por AIza o AQ.), de Groq (gsk_) o de OpenAI (sk-)", { campo: "valor" });
   const proveedor = PROVEEDORES[detectado].nombre;
   const { url, cabeceras } = peticionVoz(detectado, valor);
   let status: number;

@@ -1,10 +1,10 @@
 import { useSyncExternalStore } from "react";
 import { SECCIONES_CONFIGURACION, type IdSeccionConfiguracion } from "@/lib/configuracion";
 
-// La sección del panel vive en la URL: /panel, #clientes, #agenda, #ajustes[-negocio|-web|-asistente|-horario|-conexiones]
+// La sección del panel vive en la URL: /panel, #clientes, #agenda, #finanzas, #ajustes[-negocio|-web|-asistente|-horario|-conexiones]
 // y ?cliente={id}. Al recargar se queda donde estaba. W11 la hace suya en la fase 3; las firmas no cambian.
 
-export type Vista = "hoy" | "clientes" | "agenda" | "configuracion";
+export type Vista = "hoy" | "clientes" | "agenda" | "finanzas" | "configuracion";
 export interface Ubicacion {
   vista: Vista;
   cliente: string | null;
@@ -33,7 +33,7 @@ export function leerUbicacion(url?: string): Ubicacion {
     ancla = ancla.slice(0, interrogacion);
   }
   const conCliente = cliente ? cliente : null;
-  if (ancla === "clientes" || ancla === "agenda") return { vista: ancla, cliente: conCliente, bloque: null };
+  if (ancla === "clientes" || ancla === "agenda" || ancla === "finanzas") return { vista: ancla, cliente: conCliente, bloque: null };
   if (ancla === "ajustes") return { vista: "configuracion", cliente: conCliente, bloque: null };
   if (ancla.startsWith("ajustes-")) {
     const seccion = SECCIONES_CONFIGURACION.find((s) => s.ancla === ancla.slice("ajustes-".length));
@@ -55,6 +55,7 @@ export function hrefDe(u: Partial<Ubicacion>): string {
   let ancla = "";
   if (vista === "clientes") ancla = "#clientes";
   else if (vista === "agenda") ancla = "#agenda";
+  else if (vista === "finanzas") ancla = "#finanzas";
   else if (vista === "configuracion") {
     const seccion = bloque ? SECCIONES_CONFIGURACION.find((s) => s.id === bloque) : undefined;
     ancla = seccion ? `#ajustes-${seccion.ancla}` : "#ajustes";

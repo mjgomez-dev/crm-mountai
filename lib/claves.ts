@@ -81,7 +81,8 @@ export function clavesGuardadas(): EstadoClave[] {
 /** De quién es una clave de transcripción, por cómo empieza. Una de Anthropic no es ninguna de ellas. */
 export function nombreClaveVoz(valor: string): "GEMINI_API_KEY" | "GROQ_API_KEY" | "OPENAI_API_KEY" | null {
   const limpio = valor.trim();
-  if (limpio.startsWith("AIza")) return "GEMINI_API_KEY";
+  // Google: las de siempre empiezan por «AIza»; las nuevas de AI Studio, por «AQ.».
+  if (limpio.startsWith("AIza") || limpio.startsWith("AQ.")) return "GEMINI_API_KEY";
   if (limpio.startsWith("gsk_")) return "GROQ_API_KEY";
   if (limpio.startsWith("sk-ant-")) return null;
   if (limpio.startsWith("sk-")) return "OPENAI_API_KEY";

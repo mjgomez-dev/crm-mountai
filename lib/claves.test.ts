@@ -250,6 +250,7 @@ describe("lo que se enseña", () => {
 describe("nombreClaveVoz", () => {
   it("reconoce Google, Groq y OpenAI y no confunde una clave de Anthropic", () => {
     expect(nombreClaveVoz("  AIzaSyAbc123")).toBe("GEMINI_API_KEY");
+    expect(nombreClaveVoz("AQ.Ab8RN6Kabc123")).toBe("GEMINI_API_KEY");
     expect(nombreClaveVoz("gsk_abc123")).toBe("GROQ_API_KEY");
     expect(nombreClaveVoz("sk-proj-abc123")).toBe("OPENAI_API_KEY");
     expect(nombreClaveVoz("sk-ant-api03-abc")).toBeNull();

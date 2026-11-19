@@ -37,13 +37,15 @@ export function revisarCita(
  * necesitas cambiarla, escríbenos por aquí.». No promete nada más sobre lo que vendrá (ni avisos ni llamadas).
  * Un nombre sin letras (el teléfono enmascarado de quien no tiene nombre) no se usa: «Hola, …».
  */
-export function textoCitaParaCliente(hueco: Hueco, o: { vocabulario: Vocabulario; nombre: string; trato: "tu" | "usted" }): string {
+export function textoCitaParaCliente(hueco: Hueco, o: { vocabulario: Vocabulario; nombre: string; trato: "tu" | "vos" | "usted" }): string {
   const cita = o.vocabulario.cita;
   const f = formas(cita);
   const nombre = nombreDePila(o.nombre);
   const saludo = /\p{L}/u.test(nombre) ? `Hola ${nombre}` : "Hola";
   return o.trato === "usted"
     ? `${saludo}, le confirmo ${f.el} ${cita.singular} el ${hueco.texto}. Si necesita cambiar${f.lo}, escríbanos por aquí.`
+    : o.trato === "vos"
+    ? `${saludo}, te confirmo ${f.el} ${cita.singular} el ${hueco.texto}. Si necesitás cambiar${f.lo}, escribinos por acá.`
     : `${saludo}, te confirmo ${f.el} ${cita.singular} el ${hueco.texto}. Si necesitas cambiar${f.lo}, escríbenos por aquí.`;
 }
 

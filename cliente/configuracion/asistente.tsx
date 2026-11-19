@@ -201,7 +201,7 @@ function Trato({ datos, recargar }: PropsBloque): JSX.Element {
   const idEtiqueta = useId();
   const g = useGuardado();
   const guardado = datos.activa.agente.trato;
-  const [trato, setTrato] = useState<"tu" | "usted">(guardado);
+  const [trato, setTrato] = useState<"tu" | "vos" | "usted">(guardado);
   const enCurso = useRef(false);
   useEffect(() => {
     if (!enCurso.current) setTrato(guardado);
@@ -212,6 +212,7 @@ function Trato({ datos, recargar }: PropsBloque): JSX.Element {
       <Segmentado
         opciones={[
           { valor: "tu", texto: "tú" },
+          { valor: "vos", texto: "vos" },
           { valor: "usted", texto: "usted" },
         ]}
         valor={trato}

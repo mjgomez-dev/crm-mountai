@@ -21,7 +21,9 @@ export type ParcialConNulos<T> = { [K in keyof T]?: (T[K] extends readonly unkno
 export interface Plantilla { nombre: string; idioma: string; texto: string } // texto = cuerpo aprobado, un {{1}} y un {{2}}
 export interface ReglaPase { motivo: string /* "" → «Ha escrito «<frase>»»; la regla con motivo "" es la lista «Pásamelo siempre si escribe…» */; frases: string[]; respuesta?: string }
 export interface FrasesFijas { pase: string; fallo: string; noTexto: string; audio: string; baja: string; presentacion: string /* con {negocio} */; borrarDatos: string /* con {negocio} */ }
-export interface ReglasAgente { catalogo: TriEstado; negociar: TriEstado; pasarSiempre: ReglaPase[]; excepciones: string[]; frases: FrasesFijas; trato: "tu" | "usted" }
+export interface ReglasAgente { catalogo: TriEstado; negociar: TriEstado; pasarSiempre: ReglaPase[]; excepciones: string[]; frases: FrasesFijas; trato: Trato }
+/** Cómo trata el asistente al cliente: «tú», «vos» (Argentina, Uruguay…) o «usted». */
+export type Trato = "tu" | "vos" | "usted";
 
 export const FOTOS_PORTADA = ["/fotos/formulario.webp", "/fotos/panel.webp", "/fotos/proyecto-1.webp", "/fotos/proyecto-2.webp", "/fotos/proyecto-3.webp", "/fotos/proyecto-4.webp", "/fotos/proyecto-5.webp", "/fotos/proyecto-6.webp"] as const;
 export type FotoPortada = (typeof FOTOS_PORTADA)[number];
@@ -94,7 +96,7 @@ export interface ConfiguracionResuelta extends ValoresSector {
 }
 /** Lo que viaja en Bd cada 3 s. */
 export type ConfiguracionPublica = Omit<ConfiguracionResuelta, "portada" | "spam" | "agente" | "pistaDatos" | "plantilla"> & { plantilla: Pick<Plantilla, "nombre" | "idioma"> };
-export interface ConfigAgente { negocio: string; calendario: ReglasAgenda; vocabulario: Vocabulario; campos: CampoLead[]; pistaDatos: { descripcion: string; campo: string }; agente: ReglasAgente; moneda: Moneda }
+export interface ConfigAgente { negocio: string; calendario: ReglasAgenda; vocabulario: Vocabulario; campos: CampoLead[]; pistaDatos: { descripcion: string; campo: string }; agente: ReglasAgente; moneda: Moneda; pais?: string }
 export interface NegocioExportado { formato: "crm-whatsapp/negocio@1"; nombre: string; base: SectorPreset; configuracion: Omit<ConfiguracionPerfil, "sector" | "base">; instrucciones: string }
 export interface RevisionPrompt { error?: string; avisos: string[]; info: string[]; catalogo: { activo: boolean; refs: number; disponibles: number }; negociarAPersona: boolean }
 export type IdSeccionConfiguracion = "negocio" | "web" | "asistente" | "agenda" | "whatsapp";
@@ -134,6 +136,15 @@ export const FRASES_USTED: FrasesFijas = {
   baja: "Entendido: no le escribiremos más por aquí. Si algún día lo necesita, escríbanos y le atendemos.",
   presentacion: "Soy el asistente virtual de {negocio}.",
   borrarDatos: "Se lo paso a {negocio} para que borre sus datos.",
+};
+export const FRASES_VOS: FrasesFijas = {
+  pase: "Entendido, te paso con un compañero del equipo, que te escribe apenas pueda.",
+  fallo: "Perdoná, se me cortó. ¿Me lo repetís?",
+  noTexto: "¿Me lo podés escribir? Así no se me escapa nada",
+  audio: "Perdoná, no se escuchó bien el audio. ¿Me lo mandás de nuevo o me lo escribís?",
+  baja: "Entendido: no te vamos a escribir más por acá. Si algún día lo necesitás, escribinos y te atendemos.",
+  presentacion: "Soy el asistente virtual de {negocio}.",
+  borrarDatos: "Se lo paso a {negocio} para que borre tus datos.",
 };
 export const SISTEMA_POR_DEFECTO: ConfiguracionSistema = {
   asistente: { activo: true, pausadoEn: null, modelo: null },
@@ -315,6 +326,7 @@ export function configAgenteDe(c: ConfiguracionResuelta): ConfigAgente {
     pistaDatos: c.pistaDatos,
     agente: c.agente,
     moneda: c.regional.moneda,
+    pais: c.regional.pais,
   };
 }
 
@@ -737,7 +749,7 @@ const ESQUEMA_PERFIL: Record<string, Esquema> = {
   agente: {
     catalogo: triEstado,
     negociar: triEstado,
-    trato: opcion(() => ["tu", "usted"], "Elige tú o usted"),
+    trato: opcion(() => ["tu", "vos", "usted"], "Elige tú, vos o usted"),
     pasarSiempre,
     excepciones,
     frases: {

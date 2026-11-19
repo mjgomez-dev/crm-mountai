@@ -7,6 +7,7 @@ import {
   CUERPOS_CONOCIDOS,
   firmaDe,
   FRASES_USTED,
+  FRASES_VOS,
   generarPistaDatos,
   GUARDADA_VACIA,
   publica,
@@ -161,11 +162,11 @@ function resolverSinRed(e: { perfil: { id: string; nombre: string; hash: string 
   // 6. El asistente: el trato manda en las frases que no se han guardado
   const agenteGuardado = (seccionGuardada("agente", over.agente, p) as Registro | undefined) ?? {};
   const { frases: frasesGuardadas, ...restoAgente } = agenteGuardado;
-  const trato: ReglasAgente["trato"] = agenteGuardado.trato === "tu" || agenteGuardado.trato === "usted" ? agenteGuardado.trato : p.agente.trato;
+  const trato: ReglasAgente["trato"] = agenteGuardado.trato === "tu" || agenteGuardado.trato === "vos" || agenteGuardado.trato === "usted" ? agenteGuardado.trato : p.agente.trato;
   const frases = {} as FrasesFijas;
   for (const clave of CLAVES_FRASES) {
     const guardadaFrase = esObjeto(frasesGuardadas) ? frasesGuardadas[clave] : undefined;
-    frases[clave] = typeof guardadaFrase === "string" ? guardadaFrase : trato === "usted" ? FRASES_USTED[clave] : p.agente.frases[clave];
+    frases[clave] = typeof guardadaFrase === "string" ? guardadaFrase : trato === "usted" ? FRASES_USTED[clave] : trato === "vos" ? FRASES_VOS[clave] : p.agente.frases[clave];
   }
   const agente: ReglasAgente = { ...mezclar(p.agente, restoAgente), trato, frases };
 

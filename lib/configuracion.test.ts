@@ -111,7 +111,7 @@ const FILAS: Fila[] = [
   ["campos", [campo("a", true), campo("b", true), campo("c", true)], [campo("a", true), campo("b", true), campo("c", true), campo("d", true)], "Como mucho 3 datos en el resumen"],
   ["agente.catalogo", "si", "quizas", "Elige Automático, Sí o No"],
   ["agente.negociar", "auto", "siempre", "Elige Automático, Sí o No"],
-  ["agente.trato", "usted", "vos", "Elige tú o usted"],
+  ["agente.trato", "vos", "ustedes", "Elige tú, vos o usted"],
   ["agente.pasarSiempre", Array.from({ length: 5 }, (_, i) => regla(`Motivo ${i}`)), Array.from({ length: 6 }, (_, i) => regla(`Motivo ${i}`)), "Caben 5 reglas"],
   ["agente.pasarSiempre", [regla("A", ["abc", x(40)])], [regla("A"), regla("B", ["urgencia", "dolor", "sangra", "ab"])], "Cada frase, de 3 a 40 caracteres", "agente.pasarSiempre.1.frases.3"],
   ["agente.pasarSiempre", [regla("A", Array.from({ length: 20 }, (_, i) => `frase ${i}`))], [regla("A", Array.from({ length: 21 }, (_, i) => `frase ${i}`))], "Caben 20 frases por regla", "agente.pasarSiempre.0.frases"],

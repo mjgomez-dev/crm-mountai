@@ -216,3 +216,83 @@ body {
     animation: none;
   }
 }
+
+/* ─── Tema oscuro del panel ─────────────────────────────────────────────────────────────────────
+   Lo pone cliente/tema.ts en <html data-tema="oscuro"> solo dentro del panel (la web pública no cambia).
+   Se invierten los tokens: «blanco» pasa a ser la superficie oscura de las tarjetas y «tinta» el texto
+   claro. Así los botones bg-tinta + text-white siguen leyéndose (claros con texto oscuro). */
+html[data-tema="oscuro"] {
+  color-scheme: dark;
+  --color-white: #1c1c1f;
+  --color-tinta: #ececea;
+  --color-secundario: #a3a3a0;
+  --color-fondo: #0e0e10;
+  --color-lienzo: #121214;
+  --color-linea: #2c2c30;
+  --color-ok-texto: #5fcf9c;
+  --color-atencion-texto: #f0b562;
+  --color-error-texto: #ff8a7e;
+  --color-nuevo: #7d8391;
+  --color-conversacion: #8d9bb1;
+  --color-spam: #77736c;
+}
+
+/* La barra lateral y la barra del móvil ya son oscuras: dentro, el blanco sigue siendo blanco. */
+html[data-tema="oscuro"] .zona-oscura {
+  --color-white: #ffffff;
+  --color-tinta: #141414;
+}
+
+html[data-tema="oscuro"] .hover\:bg-black:hover {
+  background-color: #ffffff;
+}
+
+html[data-tema="oscuro"] .shadow-sm,
+html[data-tema="oscuro"] [class*="shadow-["] {
+  --tw-shadow-color: rgba(0, 0, 0, 0.5);
+}
+
+html[data-tema="oscuro"] img {
+  color-scheme: light;
+}
+
+/* El cambio de tema se nota suave, salvo con menos movimiento. */
+@media (prefers-reduced-motion: no-preference) {
+  html.cambiando-tema,
+  html.cambiando-tema * {
+    transition:
+      background-color 220ms ease-out,
+      border-color 220ms ease-out,
+      color 220ms ease-out !important;
+  }
+}
+
+/* La sección activa de la barra lateral lleva una marca del color del negocio. */
+.item-activo {
+  position: relative;
+}
+.item-activo::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 8px;
+  bottom: 8px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--color-marca);
+}
+
+/* Barras de desplazamiento discretas en el panel, en los dos temas. */
+html[data-tema] ::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+html[data-tema] ::-webkit-scrollbar-thumb {
+  background: color-mix(in oklab, var(--color-secundario) 35%, transparent);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+html[data-tema] ::-webkit-scrollbar-track {
+  background: transparent;
+}

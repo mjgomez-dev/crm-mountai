@@ -95,7 +95,9 @@ export async function crearConexionBaileys(eventos, o) {
       auth: state,
       ...(registro ? { logger: registro } : {}),
       syncFullHistory: false,
-      markOnlineOnConnect: false,
+      // Sin presencia, WhatsApp no sabe la «última vez» de este número y la enseña como la fecha 0
+      // (31/12/1969 21:00 en Argentina). Al conectar se anuncia «en línea».
+      markOnlineOnConnect: true,
     });
     sock.ev.on("creds.update", saveCreds);
 
@@ -104,6 +106,8 @@ export async function crearConexionBaileys(eventos, o) {
       if (connection === "open") {
         eventos.alCambiar({ fase: "conectado", qr: null, numero: miNumero(), error: null });
         o.log("WhatsApp vinculado en modo prueba");
+        // Por si la versión de Baileys no lo hace sola con markOnlineOnConnect.
+        void sock.sendPresenceUpdate("available").catch(() => undefined);
       }
       if (connection === "close") {
         const codigo = lastDisconnect?.error?.output?.statusCode;

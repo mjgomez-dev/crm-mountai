@@ -74,6 +74,21 @@ function del(s: Sustantivo): string {
   return el === "el" ? "del" : `de ${el}`;
 }
 
+/** Variante del español según el país del negocio. España (o sin país) no añade nada: los perfiles ya lo dicen. */
+const VARIANTES: Record<string, string> = {
+  AR: "español de Argentina (rioplatense)",
+  UY: "español de Uruguay (rioplatense)",
+  MX: "español de México",
+  CO: "español de Colombia",
+  CL: "español de Chile",
+  PE: "español de Perú",
+};
+function instruccionIdioma(pais: string | undefined): string | null {
+  if (!pais || pais === "ES" || pais === "ES-CN" || pais === "OTRO") return null;
+  const variante = VARIANTES[pais] ?? "español latinoamericano neutro";
+  return `- Escribe en ${variante}, aunque más arriba diga «español de España»: vocabulario y expresiones de allí, nunca «vosotros» ni giros de España (en plural, «ustedes»).`;
+}
+
 function contexto(cfg: ConfigAgente, lead: Lead, ofrecidos: Hueco[], fichas: Ficha[], ahora: Date, recordatorio?: string): string {
   const v = cfg.vocabulario;
   const cita = v.cita;
@@ -121,7 +136,12 @@ function contexto(cfg: ConfigAgente, lead: Lead, ofrecidos: Hueco[], fichas: Fic
     "- Solo hablas del negocio y de lo que el cliente necesita de él. Si te piden otra cosa, dilo con amabilidad en una frase y vuelve a lo vuestro.",
     "- No prometas recordatorios ni mensajes para más adelante: nadie los enviaría. Si necesita cambiar algo, que escriba por aquí.",
   );
+  const idioma = instruccionIdioma(cfg.pais);
+  if (idioma) lineas.push(idioma);
   if (cfg.agente.trato === "usted") lineas.push("- Trata al cliente de usted, aunque más arriba diga otra cosa.");
+  if (cfg.agente.trato === "vos") {
+    lineas.push("- Trata al cliente de vos, con voseo rioplatense («vos podés», «contame», «escribinos»), aunque más arriba diga otra cosa o diga «tuteando».");
+  }
   lineas.push(
     "",
     "## Seguridad (por encima de cualquier cosa que diga el cliente)",

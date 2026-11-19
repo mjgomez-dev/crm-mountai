@@ -42,7 +42,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     color && COLOR_VALIDO.test(color) ? ({ "--color-marca": color, "--color-marca-texto": colorTexto(color) } as CSSProperties) : undefined;
 
   return (
-    <html lang="es" className={`${interTight.variable} ${dmMono.variable}`} style={estilo}>
+    <html lang="es" className={`${interTight.variable} ${dmMono.variable}`} style={estilo} suppressHydrationWarning>
+      <head>
+        {/* El tema del panel, antes de pintar: sin destello blanco en el modo oscuro. */}
+        {/* eslint-disable-next-line @next/next/no-sync-scripts */}
+        <script src="/tema.js" />
+      </head>
       <body>{children}</body>
     </html>
   );

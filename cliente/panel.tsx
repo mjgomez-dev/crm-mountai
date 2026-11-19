@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ExternalLink, Menu, Search, SlidersHorizontal, Sun, Users, Volume2, VolumeX, X } from "lucide-react";
+import { CalendarDays, ExternalLink, Menu, Monitor, Moon, Search, SlidersHorizontal, Sun, Users, Volume2, VolumeX, Wallet, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent as EventoTeclado } from "react";
 import { citasDeHoy, teToca, type FilaTeToca } from "@/lib/inicio";
 import { esEjemplo } from "@/lib/negocio";
@@ -22,8 +22,10 @@ import { Paleta, type SeccionPaleta } from "./paleta";
 import { PuestaEnMarcha } from "./puesta-en-marcha";
 import { ProveedorSistema } from "./sistema";
 import { desbloquearSonido, sonar, useSilencio } from "./sonido";
+import { useTema, type PreferenciaTema } from "./tema";
 import { VistaAgenda } from "./vista-agenda";
 import { VistaConfiguracion } from "./vista-configuracion";
+import { VistaFinanzas } from "./vista-finanzas";
 import { VistaHoy } from "./vista-hoy";
 import { VistaLeads } from "./vista-leads";
 
@@ -248,6 +250,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
     { id: "hoy", nombre: "Hoy", Icono: Sun },
     { id: "clientes", nombre: frases.seccionClientes, Icono: Users },
     { id: "agenda", nombre: "Agenda", Icono: CalendarDays },
+    { id: "finanzas", nombre: "Finanzas", Icono: Wallet },
     { id: "configuracion", nombre: "Ajustes", Icono: SlidersHorizontal },
   ];
   const tituloVista = secciones.find((s) => s.id === vista)?.nombre ?? "Hoy";
@@ -289,7 +292,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
           aria-current={activa ? "page" : undefined}
           className={`flex w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-2.5 leading-5 transition-colors duration-150 ease-out focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/70 ${
             enMenu ? "h-12 text-[15px]" : "h-9 text-[14px]"
-          } ${activa ? "bg-white/10 font-medium text-white" : "text-white/65 hover:bg-white/5 hover:text-white"}`}
+          } ${activa ? `bg-white/10 font-medium text-white ${enMenu ? "" : "item-activo"}` : "text-white/65 hover:bg-white/5 hover:text-white"}`}
         >
           <Icono aria-hidden className="size-[17px] shrink-0" strokeWidth={1.75} />
           <span className="text-left">{nombreSeccion}</span>
@@ -346,6 +349,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
   };
 
   const [silencio, setSilencio] = useSilencio();
+  const tema = useTema();
   // Hoy, Agenda y Ajustes comparten una columna centrada; Clientes usa todo el ancho para el tablero.
   const columna = vista === "clientes" ? "" : COLUMNA;
   const [ranura, setRanura] = useState<HTMLDivElement | null>(null);
@@ -364,7 +368,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
 
   return (
     <div className="min-h-screen bg-lienzo lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-screen flex-col self-start bg-[#151515] px-3 pt-4 pb-3 text-white lg:flex">
+      <aside className="zona-oscura sticky top-0 hidden h-screen flex-col self-start bg-[#151515] px-3 pt-4 pb-3 text-white lg:flex">
         <div className="flex items-start gap-2.5 px-1.5">
           {logo ? (
             <span className="flex h-10 max-w-[88px] shrink-0 items-center justify-center rounded-[8px] bg-white px-1.5">
@@ -419,8 +423,8 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
         </div>
 
         <nav aria-label="Secciones del panel" className="mt-4 flex flex-1 flex-col gap-0.5">
-          {itemsOscuros.slice(0, 3)}
-          <div className="mt-auto pt-3">{itemsOscuros[3]}</div>
+          {itemsOscuros.slice(0, -1)}
+          <div className="mt-auto pt-3">{itemsOscuros[itemsOscuros.length - 1]}</div>
         </nav>
 
         <div className="mt-3 flex flex-col gap-1 border-t border-white/10 pt-3">
@@ -441,12 +445,13 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
               {silencio ? "No" : "Sí"}
             </span>
           </button>
+          <BotonTema preferencia={tema.preferencia} cambiar={tema.cambiar} />
         </div>
       </aside>
 
       {/* Por debajo de 1024 px, la barra lateral se queda en esta barra de arriba con un menú. */}
       <div className="sticky top-0 z-30 lg:hidden">
-        <div className="flex h-14 items-center gap-1 bg-[#151515] pr-1.5 pl-4 text-white">
+        <div className="zona-oscura flex h-14 items-center gap-1 bg-[#151515] pr-1.5 pl-4 text-white">
           {logo ? (
             <span className="flex h-9 max-w-[72px] shrink-0 items-center justify-center rounded-[8px] bg-white px-1.5">
               <img src={logo} alt="" className="max-h-7 w-auto object-contain" />
@@ -503,7 +508,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
             <div
               ref={hojaMenu}
               id={idMenu}
-              className="menu-movil absolute inset-x-0 top-14 flex max-h-[calc(100dvh-56px)] flex-col overflow-y-auto border-t border-white/10 bg-[#151515] px-3 pt-2 pb-3 text-white shadow-[0_16px_32px_rgba(0,0,0,0.25)]"
+              className="zona-oscura menu-movil absolute inset-x-0 top-14 flex max-h-[calc(100dvh-56px)] flex-col overflow-y-auto border-t border-white/10 bg-[#151515] px-3 pt-2 pb-3 text-white shadow-[0_16px_32px_rgba(0,0,0,0.25)]"
             >
               <nav aria-label="Secciones del panel" className="flex flex-col gap-0.5">
                 {itemsNavegacion(true)}
@@ -536,6 +541,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
                     {silencio ? "No" : "Sí"}
                   </span>
                 </button>
+                <BotonTema preferencia={tema.preferencia} cambiar={tema.cambiar} enMenu />
               </div>
             </div>
           </>
@@ -563,6 +569,7 @@ function MarcoPanel({ bd, conectado, refrescar }: { bd: Bd; conectado: boolean; 
             {lista && vista === "hoy" && <VistaHoy bd={bd} ahora={momento} filas={filas} llegadas={llegadas} refrescar={refrescar} />}
             {vistaDeLeads}
             {lista && vista === "agenda" && <VistaAgenda bd={bd} ahora={momento} />}
+            {lista && vista === "finanzas" && <VistaFinanzas bd={bd} ahora={momento} ranura={ranura} />}
             {vista === "configuracion" && <VistaConfiguracion bd={bd} refrescar={refrescar} bloque={ubicacion.bloque} />}
           </div>
         </div>
@@ -632,5 +639,30 @@ function PrimerCliente({ contestar, cliente }: { contestar: (quitar: boolean) =>
         </button>
       </div>
     </section>
+  );
+}
+
+const SIGUIENTE_TEMA: Record<PreferenciaTema, PreferenciaTema> = { claro: "oscuro", oscuro: "sistema", sistema: "claro" };
+const NOMBRE_TEMA: Record<PreferenciaTema, string> = { claro: "Claro", oscuro: "Oscuro", sistema: "Auto" };
+
+/** Cambia el tema del panel: Claro → Oscuro → Auto (el del sistema). */
+function BotonTema({ preferencia, cambiar, enMenu = false }: { preferencia: PreferenciaTema; cambiar: (p: PreferenciaTema) => void; enMenu?: boolean }) {
+  const Icono = preferencia === "claro" ? Sun : preferencia === "oscuro" ? Moon : Monitor;
+  const siguiente = SIGUIENTE_TEMA[preferencia];
+  return (
+    <button
+      type="button"
+      onClick={() => cambiar(siguiente)}
+      aria-label={`Tema: ${NOMBRE_TEMA[preferencia]}. Cambiar a ${NOMBRE_TEMA[siguiente]}`}
+      className={`flex w-full cursor-pointer items-center gap-2.5 rounded-[8px] px-2.5 leading-5 text-white/65 transition-colors duration-150 ease-out hover:bg-white/5 hover:text-white focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-white/70 ${
+        enMenu ? "h-12 text-[15px]" : "h-9 text-[13px]"
+      }`}
+    >
+      <Icono aria-hidden className={enMenu ? "size-[17px] shrink-0" : "size-4 shrink-0"} strokeWidth={1.75} />
+      Tema
+      <span aria-hidden className={`ml-auto text-white/40 ${enMenu ? "text-[13px]" : "text-[12px]"}`}>
+        {NOMBRE_TEMA[preferencia]}
+      </span>
+    </button>
   );
 }

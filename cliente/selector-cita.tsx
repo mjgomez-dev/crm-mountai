@@ -127,7 +127,7 @@ export function SelectorCita({ lead, accion, cerrar, refrescar }: {
   const v = cfg.vocabulario;
   const [huecos, setHuecos] = useState<Hueco[] | null>(null);
   const [mas, setMas] = useState(false);
-  const [trato, setTrato] = useState<"tu" | "usted" | null>(null);
+  const [trato, setTrato] = useState<"tu" | "vos" | "usted" | null>(null);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [elegido, setElegido] = useState<Hueco | null>(null);
   const [enviar, setEnviar] = useState(true);
@@ -147,7 +147,7 @@ export function SelectorCita({ lead, accion, cerrar, refrescar }: {
       const nuevos = Array.isArray(r.datos.huecos) ? (r.datos.huecos as Hueco[]) : [];
       setHuecos((antes) => (desde ? [...(antes ?? []), ...nuevos] : nuevos));
       setMas(r.datos.mas === true);
-      if (r.datos.trato === "tu" || r.datos.trato === "usted") setTrato(r.datos.trato);
+      if (r.datos.trato === "tu" || r.datos.trato === "vos" || r.datos.trato === "usted") setTrato(r.datos.trato);
     },
     [lead.id, refrescar],
   );

@@ -13,6 +13,7 @@ import { type Conexion, type Consultas, conectar } from "./conexion";
 import { avisarCambio } from "./eventos";
 import { log, recortar } from "./log";
 import { esEjemplo, NOMBRE_ETAPA } from "./negocio";
+import { type AltaMovimiento, type Movimiento, planDeCuotas, type TipoMovimiento } from "./finanzas";
 import { formatoImporte } from "./regional";
 import { crearSemilla, OPCIONES_POR_DEFECTO } from "./semilla";
 import type { OpcionesSemilla, SemillaGenerada } from "./semillas/tipos";
@@ -146,9 +147,24 @@ const ESQUEMA = [
   "ALTER TABLE ajustes ADD COLUMN IF NOT EXISTS logos jsonb NOT NULL DEFAULT '{}'",
   "ALTER TABLE ajustes ADD COLUMN IF NOT EXISTS ejemplos_de text",
   "ALTER TABLE ajustes ADD COLUMN IF NOT EXISTS instrucciones jsonb NOT NULL DEFAULT '{}'",
+  // Finanzas: cobros y pagos con su vencimiento; las cuotas de un plan comparten `grupo`.
+  `CREATE TABLE IF NOT EXISTS movimientos (
+    id text PRIMARY KEY,
+    tipo text NOT NULL CHECK (tipo IN ('cobro', 'pago')),
+    concepto text NOT NULL,
+    importe bigint NOT NULL CHECK (importe > 0),
+    vence text NOT NULL,
+    pagado_en bigint,
+    lead_id text REFERENCES leads(id) ON DELETE SET NULL,
+    cuota integer,
+    cuotas integer,
+    grupo text,
+    creado_en bigint NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS movimientos_por_vence ON movimientos (vence)",
   // Con RLS y sin políticas, la API pública de Supabase no puede leer ni escribir nada: hay
   // teléfonos y conversaciones reales. Solo entra el servidor, con la cadena de conexión.
-  ...["leads", "mensajes", "visitas", "notas", "tareas", "actividad", "proyectos", "mensajes_procesados", "ajustes"].map(
+  ...["leads", "mensajes", "visitas", "notas", "tareas", "actividad", "proyectos", "mensajes_procesados", "ajustes", "movimientos"].map(
     (tabla) => `ALTER TABLE ${tabla} ENABLE ROW LEVEL SECURITY`,
   ),
 ];
@@ -278,6 +294,86 @@ export async function editarProyecto(id: string, cambios: CambiosProyecto): Prom
   const cambiada = (await ejecutar(`UPDATE proyectos SET ${asignaciones.join(", ")} WHERE id = $${valores.length}`, valores)) > 0;
   if (cambiada) avisarCambio("leads");
   return cambiada;
+}
+
+// ---- Finanzas ----
+
+interface FilaMovimiento {
+  id: string;
+  tipo: TipoMovimiento;
+  concepto: string;
+  importe: string | number;
+  vence: string;
+  pagado_en: string | number | null;
+  lead_id: string | null;
+  lead_nombre: string | null;
+  cuota: number | null;
+  cuotas: number | null;
+  grupo: string | null;
+  creado_en: string | number;
+}
+
+function aMovimiento(f: FilaMovimiento): Movimiento {
+  return {
+    id: f.id,
+    tipo: f.tipo,
+    concepto: f.concepto,
+    importe: Number(f.importe),
+    vence: f.vence,
+    pagadoEn: f.pagado_en === null ? null : Number(f.pagado_en),
+    leadId: f.lead_id,
+    leadNombre: f.lead_nombre,
+    cuota: f.cuota === null ? null : Number(f.cuota),
+    cuotas: f.cuotas === null ? null : Number(f.cuotas),
+    grupo: f.grupo,
+    creadoEn: Number(f.creado_en),
+  };
+}
+
+/** Todos los movimientos, por vencimiento, con el nombre del cliente si lo tienen. */
+export async function leerMovimientos(): Promise<Movimiento[]> {
+  const lista = await filas<FilaMovimiento>(
+    `SELECT m.*, l.nombre AS lead_nombre FROM movimientos m LEFT JOIN leads l ON l.id = m.lead_id ORDER BY m.vence, m.creado_en, m.cuota NULLS FIRST`,
+  );
+  return lista.map(aMovimiento);
+}
+
+/** Crea el movimiento (o sus cuotas). Devuelve cuántos ha creado. */
+export async function crearMovimientos(alta: AltaMovimiento): Promise<number> {
+  const plan = planDeCuotas(alta);
+  const ahora = Date.now();
+  const grupo = plan.length > 1 ? `g_${ahora.toString(36)}_${Math.random().toString(36).slice(2, 8)}` : null;
+  await transaccion(async (c) => {
+    for (const p of plan) {
+      const id = `mov_${ahora.toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+      await c.ejecutar(
+        `INSERT INTO movimientos (id, tipo, concepto, importe, vence, pagado_en, lead_id, cuota, cuotas, grupo, creado_en)
+         VALUES ($1, $2, $3, $4, $5, NULL, $6, $7, $8, $9, $10)`,
+        [id, alta.tipo, alta.concepto, p.importe, p.vence, alta.leadId, p.cuota, plan.length > 1 ? plan.length : null, grupo, ahora],
+      );
+    }
+  });
+  avisarCambio("leads");
+  return plan.length;
+}
+
+/** Marca como pagado (o lo devuelve a pendiente). False si no existe. */
+export async function marcarMovimiento(id: string, pagado: boolean): Promise<boolean> {
+  const n = await ejecutar("UPDATE movimientos SET pagado_en = $1 WHERE id = $2", [pagado ? Date.now() : null, id]);
+  if (n > 0) avisarCambio("leads");
+  return n > 0;
+}
+
+/** Borra un movimiento o, con `todoElPlan`, todas las cuotas de su plan. Devuelve cuántos ha borrado. */
+export async function borrarMovimiento(id: string, todoElPlan: boolean): Promise<number> {
+  let n = 0;
+  if (todoElPlan) {
+    const [fila] = await filas<{ grupo: string | null }>("SELECT grupo FROM movimientos WHERE id = $1", [id]);
+    if (fila?.grupo) n = await ejecutar("DELETE FROM movimientos WHERE grupo = $1", [fila.grupo]);
+  }
+  if (n === 0) n = await ejecutar("DELETE FROM movimientos WHERE id = $1", [id]);
+  if (n > 0) avisarCambio("leads");
+  return n;
 }
 
 const global_ = globalThis as unknown as { __bd?: Promise<Conexion> };
@@ -1209,7 +1305,7 @@ const BORRAR_EJEMPLOS = "DELETE FROM leads WHERE ejemplo OR origen = 'prueba'";
  */
 export async function reiniciarBd(o: OpcionesSemilla = opcionesPorDefecto(), opciones?: { ejemplos?: boolean }): Promise<void> {
   await transaccion(async (c) => {
-    for (const tabla of ["visitas", "mensajes", "notas", "tareas", "actividad", "proyectos", "leads", "mensajes_procesados"]) {
+    for (const tabla of ["visitas", "mensajes", "notas", "tareas", "actividad", "proyectos", "movimientos", "leads", "mensajes_procesados"]) {
       await c.ejecutar(`DELETE FROM ${tabla}`);
     }
     if (opciones?.ejemplos === false) {
